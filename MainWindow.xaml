@@ -5,8 +5,28 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UGConverter"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Background="#1F2021"
+        Title="UGConverter" Height="550" Width="225">
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        
+        <StackPanel>
+            <Label Margin="0,0,0,5" Content="Source Project"></Label>
+            <Button Content="Setup Metadata From Folder" Width="200" Height="60" Click="SetupMetadataFromFolder"></Button>
+            <Button Content="Setup Metadata And Save To File" Width="200" Height="60" Click="SaveMetadataToFile"></Button>
+            
+            <Label Margin="0,30,0,5" Content="Target Project"></Label>
+            <Button Content="Load Metadata From Folder" Width="200" Height="60" Click="SetupTargetMetadataFromFolder"></Button>
+            <Button Content="Load Metadata From File" Width="200" Height="60" Click="SetupTargetMetadataFromFile"></Button>
+            
+            <Label Margin="0,30,0,5" Content="Output"></Label>
+            <Button Content="Output Updated Files To Folder" Width="200" Height="60" Click="UpdateFilesFromToFolder"></Button>
+        </StackPanel>
     </Grid>
 </Window>

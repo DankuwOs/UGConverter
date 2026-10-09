@@ -1,13 +1,10 @@
-﻿using System.Text;
+﻿using System.Collections.Concurrent;
+using System.IO;
+using System.Reflection;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using Path = System.IO.Path;
 
 namespace UGConverter;
 
@@ -16,8 +13,167 @@ namespace UGConverter;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private static readonly string[] UnityFileExtensions =
+    [
+        ".mat",
+        ".prefab",
+        ".asset",
+        ".unity",
+        ".anim",
+        ".controller",
+        ".mixer",
+        ".physicMaterial",
+        ".renderTexture"
+    ];
+    
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    
+    private void SetupMetadataFromFolder(object sender, RoutedEventArgs e)
+    {
+        SetupMetadata(false);
+    }
+
+    private void SaveMetadataToFile(object sender, RoutedEventArgs e)
+    {
+        SetupMetadata(false, true);
+    }
+
+    
+    private void SetupTargetMetadataFromFile(object sender, RoutedEventArgs e)
+    {
+        LoadMetadataList();
+    }
+
+    private void SetupTargetMetadataFromFolder(object sender, RoutedEventArgs e)
+    {
+        SetupMetadata(true);
+    }
+    
+
+    private void UpdateFilesFromToFolder(object sender, RoutedEventArgs e)
+    {
+        UpdateFiles();
+    }
+    
+    
+
+    private void SetupMetadata(bool isTarget, bool saveToFile = false)
+    {
+        var assetFolderDialog = new OpenFolderDialog
+        {
+            Title = "Select the Assets folder in your unity project"
+        };
+
+        if (assetFolderDialog.ShowDialog() == false)
+            return;
+
+        if (isTarget)
+        {
+            var metadataList = GetMetadataList(assetFolderDialog.FolderName);
+            
+            GUIDConversion.TargetMetadatas = metadataList;
+        }
+        else
+        {
+            var metadataDict = GetMetadataDict(assetFolderDialog.FolderName);
+
+            GUIDConversion.OriginalMetadata = metadataDict;
+
+            if (!saveToFile)
+                return;
+
+            var json = JsonConvert.SerializeObject(metadataDict.Values.ToList());
+
+            var saveFileDialog = new SaveFileDialog()
+            {
+                Title = "Select where to save project metadata",
+                InitialDirectory = Path.GetDirectoryName(Assembly.GetCallingAssembly().FullName),
+                Filter = "JSON files (*.json)|*.json",
+                FileName = "ProjectMetadata"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                File.WriteAllText(saveFileDialog.FileName, json);
+            }
+        }
+    }
+
+    private void LoadMetadataList()
+    {
+        var metadataFileDialog = new OpenFileDialog()
+        {
+            Title = "Select the metadata file to convert GUIDs to",
+            Filter = "JSON files (*.json)|*.json"
+        };
+
+        if (metadataFileDialog.ShowDialog() == false)
+            return;
+        
+        GUIDConversion.TargetMetadatas = JsonConvert.DeserializeObject<List<Metadata>>(File.ReadAllText(metadataFileDialog.FileName));
+    }
+
+
+    private void UpdateFiles()
+    {
+        var assetFolderDialog = new OpenFolderDialog
+        {
+            Title = "Select the folder containing assets you want to update in your unity project"
+        };
+
+        if (assetFolderDialog.ShowDialog() == false)
+            return;
+        
+        
+        var targetFolder = new OpenFolderDialog
+        {
+            Title = "Select the output folder to output files (Assets folder will be placed inside this folder)"
+        };
+
+        if (targetFolder.ShowDialog() == false)
+            return;
+        
+        GUIDConversion.UpdateFiles(assetFolderDialog.FolderName, targetFolder.FolderName);
+    }
+    
+    
+
+    private Dictionary<string, Metadata> GetMetadataDict(string folderPath)
+    {
+        var files = Directory.GetFiles(folderPath, "*.*", SearchOption.AllDirectories);
+
+        ConcurrentBag<(string, Metadata)> concurrentBag = new ConcurrentBag<(string, Metadata)>();
+        Parallel.ForEach(files.Where(path => Path.GetExtension(path) != ".meta"), filePath =>
+        {
+            if (String.IsNullOrEmpty(filePath))
+                return;
+            
+            var metadata = GUIDConversion.ParseFile(filePath);
+            if (metadata != null)
+                concurrentBag.Add((filePath, metadata));
+        });
+
+        return concurrentBag.ToDictionary();
+    }
+
+    private List<Metadata> GetMetadataList(string folderPath)
+    {
+        var files = Directory.GetFiles(folderPath, "*.*", SearchOption.AllDirectories);
+
+        ConcurrentBag<Metadata> concurrentBag = new ConcurrentBag<Metadata>();
+        Parallel.ForEach(files.Where(path => Path.GetExtension(path) != ".meta"), filePath =>
+        {
+            if (String.IsNullOrEmpty(filePath))
+                return;
+            
+            var metadata = GUIDConversion.ParseFile(filePath);
+            if (metadata != null)
+                concurrentBag.Add(metadata);
+        });
+
+        return concurrentBag.ToList();
     }
 }

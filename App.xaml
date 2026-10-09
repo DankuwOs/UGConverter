@@ -4,6 +4,13 @@
              xmlns:local="clr-namespace:UGConverter"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="0,5,0,0"></Setter>
+            <Setter Property="Background" Value="#343637"></Setter>
+            <Setter Property="Foreground" Value="#FFFFFF"></Setter>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="#FFFFFF"></Setter>
+        </Style>
     </Application.Resources>
 </Application>

@@ -10,4 +10,3 @@ namespace UGConverter;
 public partial class App : Application
 {
 }
-
