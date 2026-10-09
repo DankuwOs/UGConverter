@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows;
 using Microsoft.Win32;
 using Newtonsoft.Json;
+using Serilog.Core;
 using Path = System.IO.Path;
 
 namespace UGConverter;
@@ -76,12 +77,14 @@ public partial class MainWindow : Window
             var metadataList = GetMetadataList(assetFolderDialog.FolderName);
             
             GUIDConversion.TargetMetadatas = metadataList;
+            App.Logger.Debug($"Found {metadataList.Count} metadata files in target directory.");
         }
         else
         {
             var metadataDict = GetMetadataDict(assetFolderDialog.FolderName);
 
             GUIDConversion.OriginalMetadata = metadataDict;
+            App.Logger.Debug($"Found {metadataDict.Count} metadata files in source directory.");
 
             if (!saveToFile)
                 return;
@@ -97,6 +100,7 @@ public partial class MainWindow : Window
             };
             if (saveFileDialog.ShowDialog() == true)
             {
+                App.Logger.Debug($"Saving to file '{saveFileDialog.FileName}'");
                 File.WriteAllText(saveFileDialog.FileName, json);
             }
         }
@@ -136,6 +140,8 @@ public partial class MainWindow : Window
         if (targetFolder.ShowDialog() == false)
             return;
         
+        App.Logger.Debug($"Updating files in '{assetFolderDialog.FolderName}' to '{targetFolder.FolderName}'");
+        
         GUIDConversion.UpdateFiles(assetFolderDialog.FolderName, targetFolder.FolderName);
     }
     
@@ -153,7 +159,14 @@ public partial class MainWindow : Window
             
             var metadata = GUIDConversion.ParseFile(filePath);
             if (metadata != null)
+            {
+                App.Logger.Debug($"Successfully parsed metadata from file '{filePath}'");
                 concurrentBag.Add((filePath, metadata));
+            }
+            else
+            {
+                App.Logger.Warning($"Failed to parse file '{filePath}'");
+            }
         });
 
         return concurrentBag.ToDictionary();
@@ -171,7 +184,14 @@ public partial class MainWindow : Window
             
             var metadata = GUIDConversion.ParseFile(filePath);
             if (metadata != null)
+            {
+                App.Logger.Debug($"Successfully parsed metadata from file '{filePath}'");
                 concurrentBag.Add(metadata);
+            }
+            else
+            {
+                App.Logger.Warning($"Failed to parse file '{filePath}'");
+            }
         });
 
         return concurrentBag.ToList();
