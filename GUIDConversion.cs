@@ -73,7 +73,7 @@ public class GUIDConversion
 
         Parallel.ForEach(files, filePath =>
         {
-            if (Path.GetExtension(filePath) == ".meta")
+            if (Path.GetExtension(filePath) == ".meta" || !OriginalMetadata.ContainsKey(filePath))
                 return;
             
             Logger.Debug($"Updating File: {Path.GetFileName(filePath)}");
